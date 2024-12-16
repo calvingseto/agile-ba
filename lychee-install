@@ -1,0 +1,70 @@
+sudo apt update
+sudo apt install apache2 mariadb-server php-cli php-intl php-xmlrpc php-soap php-mysql php-zip php-gd php-tidy php-mbstring php-curl php-xml php-pear php-bcmath php-imagick php-tokenizer libapache2-mod-php
+sudo systemctl is-enabled apache2
+sudo systemctl status apache2
+sudo systemctl is-enabled mariadb
+sudo systemctl status mariadb
+php -v
+php -m
+sudo nano /etc/php/8.3/apache2/php.ini
+date.timezone = Europe/Amsterdam
+memory_limit = 256M
+
+upload_max_filesize = 64MB
+post_max_size = 64MB
+sudo systemctl restart apache2
+sudo mariadb-secure-installation
+sudo mariadb -u root -p
+CREATE DATABASE lychee;
+GRANT ALL PRIVILEGES ON lychee. * TO lycheeuser@'localhost' IDENTIFIED BY 'LycheePassword' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+SHOW GRANTS FOR lycheeuser@localhost;
+sudo apt install unzip -y
+cd /var/www/
+wget https://github.com/LycheeOrg/Lychee/releases/download/v5.5.1/Lychee.zip
+unzip Lychee.zip
+sudo chown -R www-data:www-data /var/www/Lychee
+sudo chmod u+rw /var/www/Lychee/{storage,bootstrap/cache/,public/dist,public/uploads,public/sym}
+sudo -u www-data cp /var/www/Lychee/.env-example /var/www/Lychee/.env
+sudo -u www-data nano /var/www/Lychee/.env
+# domain name
+APP_URL=https://photo.howtoforge.local
+
+# database to MariaDB/MySQL
+DB_CONNECTION=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_DATABASE=lychee
+DB_USERNAME=lycheeuser
+DB_PASSWORD=LycheePassword
+
+sudo a2enmod rewrite
+sudo nano /etc/apache2/apache.conf
+<Directory /var/www/Lychee>
+ Options Indexes FollowSymLinks
+ AllowOverride All
+ Require all granted
+</Directory>
+
+sudo nano /etc/apache2/sites-available/lychee.conf
+<VirtualHost *:80>
+  
+  ServerAdmin admin@howtoforge.local
+  ServerName photo.howtoforge.local
+  
+  DocumentRoot /var/www/Lychee/
+
+  ErrorLog /var/log/apache2/photo-howtoforge-local-error_log
+  CustomLog /var/log/apache2/photo-howtoforge-local-access_log common
+
+</VirtualHost>
+
+sudo a2ensite lychee.conf
+sudo apachectl configtest
+
+sudo systemctl restart apache2
+
+sudo apt install certbot python3-certbot-apache -y
+
+sudo certbot --apache --agree-tos --redirect --hsts --staple-ocsp --email admin@howtoforge.local -d photo.howtoforge.local
+
